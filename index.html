@@ -565,28 +565,63 @@ sb.auth.onAuthStateChange(async (_e, session) => {
 
 async function initApp(user) {
   CURRENT_USER = user
-  CURRENT_PROFILE = await fetchOrCreateProfile(user)
-  showApp()
-  await loadData()
+  try {
+    CURRENT_PROFILE = await fetchOrCreateProfile(user)
+    if (!CURRENT_PROFILE) return
+    showApp()
+    await loadData()
+  } catch(e) {
+    console.error('initApp error:', e)
+    showLoginError('Error al cargar perfil: ' + e.message + '. Recarga la página.')
+  }
+}
+
+function showLoginError(msg) {
+  // Mostrar error aunque ya hayamos salido de la pantalla de login
+  document.getElementById('auth-screen').classList.remove('hidden')
+  document.getElementById('app').classList.add('hidden')
+  const err = document.getElementById('l-err')
+  err.innerHTML = '❌ ' + msg
+  err.classList.remove('hidden')
+  const btn = document.getElementById('l-btn')
+  btn.textContent = 'Ingresar'; btn.disabled = false
 }
 
 // ── PROFILE ──────────────────────────────────────────────
 async function fetchOrCreateProfile(user) {
-  let { data: profile } = await sb
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  // Intentar leer perfil existente
+  const { data: profile, error: readErr } = await sb
+    .from('profiles').select('*').eq('id', user.id).single()
 
-  if (!profile) {
-    const name = user.user_metadata?.full_name || user.email.split('@')[0]
-    const { data: created } = await sb
-      .from('profiles')
-      .insert([{ id: user.id, full_name: name, email: user.email, role: 'user' }])
-      .select().single()
-    profile = created
+  // Si existe, devolverlo
+  if (profile) return profile
+
+  // Código PGRST116 = fila no encontrada (normal para usuario nuevo)
+  // Cualquier otro error = problema real
+  if (readErr && readErr.code !== 'PGRST116') {
+    console.error('Error leyendo perfil:', readErr.code, readErr.message)
+    if (readErr.message.includes('profiles') && readErr.message.includes('exist')) {
+      showLoginError('La tabla "profiles" no existe. Ejecuta supabase-fix.sql en Supabase → SQL Editor y recarga.')
+      await sb.auth.signOut()
+      return null
+    }
+    // Para cualquier otro error de lectura, usar perfil mínimo
+    console.warn('Usando perfil mínimo por error:', readErr.message)
+    return { id: user.id, email: user.email, full_name: user.email.split('@')[0], role: 'user' }
   }
-  return profile
+
+  // Perfil no existe: crearlo
+  const name = user.user_metadata?.full_name || user.email.split('@')[0]
+  const { data: created, error: insErr } = await sb
+    .from('profiles')
+    .insert([{ id: user.id, full_name: name, email: user.email, role: 'user' }])
+    .select().single()
+
+  if (insErr) {
+    console.warn('No se pudo crear perfil:', insErr.message, '— usando perfil mínimo')
+    return { id: user.id, email: user.email, full_name: name, role: 'user' }
+  }
+  return created
 }
 
 // ── AUTH TABS ─────────────────────────────────────────────
@@ -608,10 +643,53 @@ async function doLogin() {
   const btn   = document.getElementById('l-btn')
   const err   = document.getElementById('l-err')
   err.classList.add('hidden')
-  btn.textContent = 'Ingresando…'; btn.disabled = true
-  const { error } = await sb.auth.signInWithPassword({ email, password: pw })
-  btn.textContent = 'Ingresar'; btn.disabled = false
-  if (error) { err.textContent = error.message; err.classList.remove('hidden') }
+
+  // Validaciones básicas antes de llamar a Supabase
+  if (!email) { err.textContent = 'Ingresa tu correo electrónico'; err.classList.remove('hidden'); return }
+  if (!pw)    { err.textContent = 'Ingresa tu contraseña'; err.classList.remove('hidden'); return }
+
+  // Verificar que las credenciales de Supabase están configuradas
+  if (SUPABASE_URL.includes('TU_PROYECTO') || SUPABASE_ANON.includes('TU_ANON_KEY')) {
+    err.innerHTML = '⚠️ <strong>Falta configurar Supabase.</strong><br>Edita las líneas SUPABASE_URL y SUPABASE_ANON en el HTML con tus credenciales reales.'
+    err.classList.remove('hidden')
+    return
+  }
+
+  btn.textContent = 'Verificando credenciales…'; btn.disabled = true
+
+  try {
+    const { data, error: authError } = await sb.auth.signInWithPassword({ email, password: pw })
+
+    if (authError) {
+      const msg = authError.message
+      if (msg.includes('Email not confirmed'))
+        err.innerHTML = '📧 <strong>Email no confirmado.</strong><br>Ve a Supabase → Authentication → Providers → Email → desactiva "Confirm email" → guarda.'
+      else if (msg.includes('Invalid login credentials'))
+        err.textContent = '❌ Correo o contraseña incorrectos.'
+      else if (msg.includes('Too many requests'))
+        err.textContent = '⏳ Demasiados intentos. Espera unos minutos.'
+      else
+        err.textContent = '❌ ' + msg
+      err.classList.remove('hidden')
+      btn.textContent = 'Ingresar'; btn.disabled = false
+      return
+    }
+
+    // Login OK — llamar initApp directamente sin esperar onAuthStateChange
+    if (data?.user) {
+      btn.textContent = 'Cargando perfil…'
+      await initApp(data.user)
+    } else {
+      err.textContent = '❌ No se recibió sesión. Intenta de nuevo.'
+      err.classList.remove('hidden')
+      btn.textContent = 'Ingresar'; btn.disabled = false
+    }
+
+  } catch (e) {
+    err.textContent = '❌ Error de conexión: ' + e.message
+    err.classList.remove('hidden')
+    btn.textContent = 'Ingresar'; btn.disabled = false
+  }
 }
 
 async function doRegister() {
