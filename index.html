@@ -1,291 +1,296 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Cálidda — Avance de Obra</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
   <style>
-    /* ─── TOKENS ─────────────────────────────────────────── */
     :root {
-      --blue:    #003F7D;
-      --blue-dk: #00285A;
-      --orange:  #F47920;
-      --light:   #E8F0F9;
-      --bg:      #F0F3F7;
-      --white:   #FFFFFF;
-      --text:    #1A2B3C;
-      --muted:   #6B7A8D;
-      --border:  #E2E8F0;
-      --green:   #10B981;
-      --red:     #EF4444;
-      --shadow:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
-      --shadow-lg: 0 10px 40px rgba(0,0,0,.15);
-      --radius:  12px;
+      --blue:#003F7D; --blue-dk:#00285A; --orange:#F47920;
+      --light:#E8F0F9; --bg:#F0F3F7; --white:#fff;
+      --text:#1A2B3C; --muted:#6B7A8D; --border:#E2E8F0;
+      --green:#10B981; --red:#EF4444; --amber:#F59E0B;
+      --purple:#7C3AED;
+      --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+      --shadow-lg:0 10px 40px rgba(0,0,0,.16);
+      --radius:12px;
     }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    button{cursor:pointer;font-family:inherit}
+    input,select,textarea{font-family:inherit}
 
-    /* ─── RESET ──────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-    button { cursor: pointer; font-family: inherit; }
-    input, select { font-family: inherit; }
-    a { color: inherit; text-decoration: none; }
+    /* ── UTILS ── */
+    .hidden{display:none!important}
+    .flex{display:flex}.gap-2{gap:8px}.gap-3{gap:12px}
+    .items-center{align-items:center}.flex-1{flex:1}.ml-auto{margin-left:auto}
+    .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .text-sm{font-size:13px}.text-xs{font-size:11px}
+    .font-bold{font-weight:700}.text-muted{color:var(--muted)}
 
-    /* ─── UTILS ──────────────────────────────────────────── */
-    .hidden   { display: none !important; }
-    .flex     { display: flex; }
-    .gap-2    { gap: 8px; }
-    .gap-3    { gap: 12px; }
-    .items-center { align-items: center; }
-    .flex-1   { flex: 1; }
-    .ml-auto  { margin-left: auto; }
-    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* ── BUTTONS ── */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;border:none;transition:all .15s;white-space:nowrap}
+    .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-dk)}
+    .btn-secondary{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}.btn-secondary:hover{background:var(--light)}
+    .btn-orange{background:var(--orange);color:#fff}.btn-orange:hover{opacity:.9}
+    .btn-danger{background:#FEE2E2;color:var(--red);border:1px solid #FECACA}.btn-danger:hover{background:#FECACA}
+    .btn-ghost{background:transparent;color:var(--muted);border:none;padding:6px 8px}.btn-ghost:hover{background:var(--light);color:var(--blue)}
+    .btn-purple{background:var(--purple);color:#fff}.btn-purple:hover{opacity:.9}
+    .btn:disabled{opacity:.5;pointer-events:none}
+    .btn-sm{padding:5px 12px;font-size:12px}.btn-icon{padding:6px;border-radius:8px}
 
-    /* ─── BUTTONS ────────────────────────────────────────── */
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; transition: all .15s; }
-    .btn-primary   { background: var(--blue); color: #fff; }
-    .btn-primary:hover   { background: var(--blue-dk); }
-    .btn-secondary { background: #fff; color: var(--blue); border: 1.5px solid var(--blue); }
-    .btn-secondary:hover { background: var(--light); }
-    .btn-orange    { background: var(--orange); color: #fff; }
-    .btn-orange:hover    { opacity: .9; }
-    .btn-danger    { background: #FEE2E2; color: var(--red); border: 1px solid #FECACA; }
-    .btn-danger:hover    { background: #FECACA; }
-    .btn-ghost     { background: transparent; color: var(--muted); border: none; padding: 6px 8px; }
-    .btn-ghost:hover     { background: var(--light); color: var(--blue); }
-    .btn:disabled  { opacity: .55; pointer-events: none; }
-    .btn-sm        { padding: 5px 12px; font-size: 12px; }
-    .btn-icon      { padding: 6px; border-radius: 8px; }
+    /* ── INPUTS ── */
+    .input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;color:var(--text)}
+    .input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,63,125,.12)}
+    .input::placeholder{color:#aab}
+    label.lbl{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
 
-    /* ─── INPUTS ─────────────────────────────────────────── */
-    .input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; background: #fff; outline: none; transition: border-color .15s, box-shadow .15s; color: var(--text); }
-    .input:focus  { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,63,125,.12); }
-    .input::placeholder { color: #aab; }
-    label.field-label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+    /* ── CARDS ── */
+    .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:20px}
 
-    /* ─── CARDS ──────────────────────────────────────────── */
-    .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 20px; }
+    /* ── BADGES ── */
+    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600}
+    .badge-blue{background:var(--light);color:var(--blue)}
+    .badge-green{background:#D1FAE5;color:#065F46}
+    .badge-orange{background:#FEF3C7;color:#92400E}
+    .badge-red{background:#FEE2E2;color:#991B1B}
+    .badge-purple{background:#EDE9FE;color:#5B21B6}
+    .badge-gray{background:#F1F5F9;color:#475569}
 
-    /* ─── BADGE ──────────────────────────────────────────── */
-    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
-    .badge-blue   { background: var(--light); color: var(--blue); }
-    .badge-green  { background: #D1FAE5; color: #065F46; }
-    .badge-orange { background: #FEF3C7; color: #92400E; }
-    .badge-red    { background: #FEE2E2; color: #991B1B; }
+    /* ── TOAST ── */
+    #toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;transition:opacity .3s,transform .3s;opacity:0;transform:translateY(8px);pointer-events:none}
+    #toast.show{opacity:1;transform:translateY(0)}
+    #toast.ok{background:var(--green)}#toast.err{background:var(--red)}#toast.info{background:var(--blue)}
 
-    /* ─── TOAST ──────────────────────────────────────────── */
-    #toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 10px; color: #fff; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 9999; transition: opacity .3s, transform .3s; opacity: 0; transform: translateY(8px); pointer-events: none; }
-    #toast.show { opacity: 1; transform: translateY(0); }
-    #toast.ok  { background: var(--green); }
-    #toast.err { background: var(--red); }
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal-box{background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:460px;overflow:hidden;animation:slideUp .2s ease}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border)}
+    .modal-header h3{font-size:15px;font-weight:700}
+    .modal-body{padding:24px}
+    @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-    /* ─── MODAL ──────────────────────────────────────────── */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .modal-box { background: #fff; border-radius: 16px; box-shadow: var(--shadow-lg); width: 100%; max-width: 440px; overflow: hidden; animation: slideUp .2s ease; }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); }
-    .modal-header h3 { font-size: 15px; font-weight: 700; color: var(--text); }
-    .modal-body { padding: 24px; }
-    @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    /* ── PROGRESS ── */
+    .pbar-track{height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden}
+    .pbar-fill{height:100%;border-radius:99px;transition:width .6s ease}
+    .pbar-high{background:linear-gradient(90deg,#10B981,#34D399)}
+    .pbar-mid{background:linear-gradient(90deg,#003F7D,#F47920)}
+    .pbar-low{background:linear-gradient(90deg,#003F7D,#60A5FA)}
 
-    /* ─── PROGRESS BAR ───────────────────────────────────── */
-    .pbar-track { height: 8px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
-    .pbar-fill  { height: 100%; border-radius: 99px; transition: width .6s ease; }
-    .pbar-fill.high   { background: linear-gradient(90deg, #10B981, #34D399); }
-    .pbar-fill.mid    { background: linear-gradient(90deg, #003F7D, #F47920); }
-    .pbar-fill.low    { background: linear-gradient(90deg, #003F7D, #60A5FA); }
+    /* ── LAYOUT ── */
+    #app{display:flex;min-height:100vh}
+    #sidebar{width:228px;min-height:100vh;background:var(--blue);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px}
+    .logo-icon{width:36px;height:36px;background:var(--orange);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .logo-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.01em}
+    .logo-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px}
+    .sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+    .nav-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 4px;margin-top:4px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);transition:all .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+    .nav-item:hover{background:rgba(255,255,255,.1);color:#fff}
+    .nav-item.active{background:rgba(255,255,255,.15);color:#fff;font-weight:600}
+    .nav-icon{font-size:15px;width:18px;text-align:center}
+    .sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.1)}
+    .user-email{font-size:11px;color:rgba(255,255,255,.35);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .user-role-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;margin-bottom:6px}
+    .role-admin{background:var(--orange);color:#fff}
+    .role-user{background:rgba(255,255,255,.15);color:rgba(255,255,255,.7)}
 
-    /* ─── LAYOUT ─────────────────────────────────────────── */
-    #app { display: flex; min-height: 100vh; }
+    #main{flex:1;display:flex;flex-direction:column;min-width:0}
+    .page-header{padding:28px 32px 0}
+    .page-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+    .page-sub{font-size:13px;color:var(--muted);margin-top:2px}
+    .page-content{padding:20px 32px 32px;flex:1}
+    .view{display:none}.view.active{display:block}
 
-    /* Sidebar */
-    #sidebar { width: 228px; min-height: 100vh; background: var(--blue); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-    .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 10px; }
-    .logo-icon { width: 36px; height: 36px; background: var(--orange); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .logo-name  { font-size: 14px; font-weight: 800; color: #fff; letter-spacing: -.01em; }
-    .logo-sub   { font-size: 10px; color: rgba(255,255,255,.45); margin-top: 1px; }
-    .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
-    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,.6); transition: all .15s; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; }
-    .nav-item:hover  { background: rgba(255,255,255,.1); color: #fff; }
-    .nav-item.active { background: rgba(255,255,255,.15); color: #fff; font-weight: 600; }
-    .nav-icon { font-size: 16px; width: 18px; text-align: center; }
-    .sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.1); }
-    .user-email { font-size: 11px; color: rgba(255,255,255,.35); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* ── LOGIN / REGISTER ── */
+    .auth-screen{min-height:100vh;background:var(--blue);display:flex;align-items:center;justify-content:center;padding:16px;position:relative;overflow:hidden}
+    .auth-screen::before{content:'';position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:20px 20px}
+    .auth-card{background:#fff;border-radius:20px;box-shadow:var(--shadow-lg);width:100%;max-width:380px;overflow:hidden;position:relative}
+    .auth-accent{height:4px;background:linear-gradient(90deg,var(--blue),var(--orange))}
+    .auth-body{padding:36px}
+    .auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+    .auth-logo-icon{width:42px;height:42px;background:var(--blue);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+    .auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:22px}
+    .auth-tab{flex:1;padding:8px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+    .auth-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+    .auth-form{display:flex;flex-direction:column;gap:14px}
+    .auth-submit{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:4px}
+    .auth-submit:hover{background:var(--blue-dk)}
+    .auth-err{font-size:12px;color:var(--red);background:#FEE2E2;padding:9px 12px;border-radius:7px}
+    .auth-ok{font-size:12px;color:#065F46;background:#D1FAE5;padding:9px 12px;border-radius:7px}
+    .pw-wrap{position:relative}
+    .pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px}
+    .auth-footer{text-align:center;color:rgba(255,255,255,.3);font-size:11px;margin-top:20px}
 
-    /* Main content */
-    #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    .page-header { padding: 28px 32px 0; }
-    .page-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.02em; }
-    .page-sub   { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .page-content { padding: 20px 32px 32px; flex: 1; }
+    /* ── STATS ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+    .stat-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;display:flex;align-items:flex-start;gap:14px}
+    .stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .stat-value{font-size:26px;font-weight:800;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}
+    .stat-hint{font-size:11px;color:var(--muted);margin-top:2px}
 
-    /* ─── VIEWS ──────────────────────────────────────────── */
-    .view { display: none; }
-    .view.active { display: block; }
+    /* ── CHARTS ── */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+    .chart-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px}
+    .chart-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px}
+    .chart-wrap{position:relative;height:200px}
+    @media(max-width:768px){.charts-grid{grid-template-columns:1fr}}
 
-    /* ─── LOGIN ──────────────────────────────────────────── */
-    #login-screen { min-height: 100vh; background: var(--blue); display: flex; align-items: center; justify-content: center; padding: 16px; position: relative; overflow: hidden; }
-    #login-screen::before { content:''; position:absolute; inset:0; opacity:.04; background-image: repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%); background-size:20px 20px; }
-    .login-card { background: #fff; border-radius: 20px; box-shadow: var(--shadow-lg); width: 100%; max-width: 360px; overflow: hidden; position: relative; }
-    .login-accent { height: 4px; background: linear-gradient(90deg, var(--blue), var(--orange) 60%, var(--orange)); }
-    .login-body { padding: 36px; }
-    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-    .login-logo-icon { width: 42px; height: 42px; background: var(--blue); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .login-title { font-size: 20px; font-weight: 800; color: var(--text); }
-    .login-sub   { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .login-form  { display: flex; flex-direction: column; gap: 14px; }
-    .login-form .field { display: flex; flex-direction: column; gap: 4px; }
-    .login-btn   { width: 100%; padding: 11px; background: var(--blue); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; margin-top: 4px; }
-    .login-btn:hover  { background: var(--blue-dk); }
-    .login-error { font-size: 12px; color: var(--red); background: #FEE2E2; padding: 9px 12px; border-radius: 7px; margin-top: 4px; }
-    .login-footer { text-align: center; color: rgba(255,255,255,.3); font-size: 11px; margin-top: 24px; }
-    .pw-wrap { position: relative; }
-    .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 2px; }
+    /* ── TABLE ── */
+    .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    table{width:100%;border-collapse:collapse}
+    thead tr{background:#F7FAFC;border-bottom:1.5px solid var(--border)}
+    th{padding:10px 14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap}
+    td{padding:10px 14px;font-size:13px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#FAFBFC}
+    .td-mono{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:var(--muted)}
+    .td-actions{display:flex;gap:4px}
 
-    /* ─── STATS GRID ─────────────────────────────────────── */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
-    .stat-card  { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; }
-    .stat-icon  { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-    .stat-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-    .stat-value { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1.1; font-variant-numeric: tabular-nums; }
-    .stat-hint  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    /* ── FILTER BAR ── */
+    .filter-bar{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:14px}
+    .filter-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+    .filter-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+    .filter-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    @media(max-width:680px){.filter-row{grid-template-columns:1fr 1fr}}
 
-    /* ─── CHARTS GRID ────────────────────────────────────── */
-    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-    .chart-card  { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; }
-    .chart-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
-    .chart-wrap  { position: relative; height: 200px; }
-    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+    /* ── FORM ── */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .form-grid .full{grid-column:1/-1}
+    .form-actions{display:flex;gap:10px;margin-top:18px}
+    .preview-bar{background:var(--bg);border-radius:8px;padding:12px;margin-top:10px}
+    .preview-bar p{font-size:11px;color:var(--muted);margin-bottom:6px}
+    .preview-pct{text-align:right;font-size:12px;font-weight:800;color:var(--blue);margin-top:4px}
 
-    /* ─── PROJECT LIST ───────────────────────────────────── */
-    .project-list { display: flex; flex-direction: column; gap: 10px; }
-    .project-row  { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
-    .project-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+    /* ── USERS TABLE ── */
+    .user-avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
 
-    /* ─── TABLE ──────────────────────────────────────────── */
-    .table-wrap   { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); background: #fff; }
-    table { width: 100%; border-collapse: collapse; }
-    thead tr { background: #F7FAFC; border-bottom: 1.5px solid var(--border); }
-    th { padding: 10px 16px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; text-align: left; white-space: nowrap; }
-    td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid #F1F5F9; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #FAFBFC; }
-    .td-mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--muted); }
-    .td-actions { display: flex; gap: 4px; }
+    /* ── ADMIN BANNER ── */
+    .admin-banner{background:linear-gradient(135deg,var(--blue-dk),var(--blue));border-radius:var(--radius);padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;color:#fff}
+    .admin-banner-icon{font-size:28px}
+    .admin-banner h3{font-size:14px;font-weight:700;margin-bottom:2px}
+    .admin-banner p{font-size:12px;opacity:.7}
 
-    /* ─── FILTER BAR ─────────────────────────────────────── */
-    .filter-bar { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 14px; }
-    .filter-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
-    .filter-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
-    .filter-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-    @media (max-width: 680px) { .filter-row { grid-template-columns: 1fr 1fr; } }
+    /* ── PROJECT LIST ── */
+    .project-list{display:flex;flex-direction:column;gap:10px}
+    .project-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+    .project-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:5px}
 
-    /* ─── FORM ───────────────────────────────────────────── */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .form-grid .full { grid-column: 1 / -1; }
-    .form-actions { display: flex; gap: 10px; margin-top: 18px; }
-    .preview-bar  { background: var(--bg); border-radius: 8px; padding: 12px; margin-top: 10px; }
-    .preview-bar p { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-    .preview-pct  { text-align: right; font-size: 12px; font-weight: 800; color: var(--blue); margin-top: 4px; }
+    /* ── EMPTY ── */
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty-icon{font-size:40px;opacity:.3;margin-bottom:12px}
+    .empty-text{font-size:14px;font-weight:500}
+    .empty-hint{font-size:12px;margin-top:4px}
 
-    /* ─── EMPTY STATE ────────────────────────────────────── */
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-icon  { font-size: 40px; opacity: .3; margin-bottom: 12px; }
-    .empty-text  { font-size: 14px; font-weight: 500; }
-    .empty-hint  { font-size: 12px; margin-top: 4px; }
-
-    /* ─── PAGE ACTIONS ───────────────────────────────────── */
-    .page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    /* ─── RESPONSIVE SIDEBAR ─────────────────────────────── */
-    @media (max-width: 640px) {
-      #sidebar { width: 56px; }
-      .logo-name, .logo-sub, .nav-item span, .sidebar-footer { display: none; }
-      .sidebar-logo { justify-content: center; padding: 16px 8px; }
-      .nav-item { justify-content: center; padding: 10px; }
-      .nav-icon { width: auto; margin: 0; }
-      .page-header, .page-content { padding-left: 16px; padding-right: 16px; }
+    /* ── RESPONSIVE ── */
+    @media(max-width:640px){
+      #sidebar{width:56px}
+      .logo-name,.logo-sub,.nav-item span,.nav-section,.sidebar-footer .user-email,.sidebar-footer .user-role-badge,.sidebar-footer span{display:none}
+      .sidebar-logo{justify-content:center;padding:16px 8px}
+      .nav-item{justify-content:center;padding:10px}
+      .nav-icon{width:auto;margin:0}
+      .page-header,.page-content{padding-left:16px;padding-right:16px}
     }
   </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════
-     LOGIN SCREEN
-═══════════════════════════════════════════════════════════ -->
-<div id="login-screen">
-  <div>
-    <div class="login-card">
-      <div class="login-accent"></div>
-      <div class="login-body">
-        <div class="login-logo">
-          <div class="login-logo-icon">🔥</div>
+<!-- ═══════════════════ AUTH SCREEN ═══════════════════ -->
+<div id="auth-screen" class="auth-screen">
+  <div style="width:100%;max-width:380px;">
+    <div class="auth-card">
+      <div class="auth-accent"></div>
+      <div class="auth-body">
+        <div class="auth-logo">
+          <div class="auth-logo-icon">🔥</div>
           <div>
-            <div class="login-title">Cálidda</div>
-            <div class="login-sub">Avance de Obra</div>
+            <div style="font-size:18px;font-weight:800;color:var(--blue);">Cálidda</div>
+            <div style="font-size:12px;color:var(--muted);">Avance de Obra</div>
           </div>
         </div>
-        <h2 style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;">Bienvenido</h2>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Ingresa tus credenciales para continuar</p>
-        <div class="login-form">
-          <div class="field">
-            <label class="field-label">Correo electrónico</label>
-            <input id="login-email" class="input" type="email" placeholder="usuario@calidda.com.pe" autocomplete="email" />
-          </div>
-          <div class="field">
-            <label class="field-label">Contraseña</label>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login" onclick="showTab('login')">Ingresar</button>
+          <button class="auth-tab" id="tab-register" onclick="showTab('register')">Registrarse</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div id="form-login" class="auth-form">
+          <div><label class="lbl">Correo</label><input id="l-email" class="input" type="email" placeholder="usuario@calidda.com.pe"/></div>
+          <div>
+            <label class="lbl">Contraseña</label>
             <div class="pw-wrap">
-              <input id="login-pw" class="input" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:38px;" />
-              <button class="pw-toggle" onclick="togglePw()" id="pw-eye">👁️</button>
+              <input id="l-pw" class="input" type="password" placeholder="••••••••" style="padding-right:36px"/>
+              <button class="pw-toggle" onclick="togglePw('l-pw')">👁️</button>
             </div>
           </div>
-          <div id="login-error" class="login-error hidden"></div>
-          <button class="login-btn" id="login-btn" onclick="doLogin()">Ingresar</button>
+          <div id="l-err" class="auth-err hidden"></div>
+          <button class="auth-submit" id="l-btn" onclick="doLogin()">Ingresar</button>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="form-register" class="auth-form hidden">
+          <div><label class="lbl">Nombre completo</label><input id="r-name" class="input" placeholder="Tu nombre"/></div>
+          <div><label class="lbl">Correo</label><input id="r-email" class="input" type="email" placeholder="usuario@calidda.com.pe"/></div>
+          <div>
+            <label class="lbl">Contraseña</label>
+            <div class="pw-wrap">
+              <input id="r-pw" class="input" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:36px"/>
+              <button class="pw-toggle" onclick="togglePw('r-pw')">👁️</button>
+            </div>
+          </div>
+          <div id="r-err" class="auth-err hidden"></div>
+          <div id="r-ok"  class="auth-ok  hidden"></div>
+          <button class="auth-submit" id="r-btn" onclick="doRegister()">Crear cuenta</button>
         </div>
       </div>
     </div>
-    <p class="login-footer">© 2025 Cálidda Gas Natural del Perú</p>
+    <p class="auth-footer">© 2025 Cálidda Gas Natural del Perú</p>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     MAIN APP (hidden until login)
-═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════ MAIN APP ═══════════════════════ -->
 <div id="app" class="hidden">
-
   <!-- SIDEBAR -->
   <nav id="sidebar">
     <div class="sidebar-logo">
       <div class="logo-icon">🔥</div>
-      <div>
-        <div class="logo-name">Cálidda</div>
-        <div class="logo-sub">Avance de Obra</div>
-      </div>
+      <div><div class="logo-name">Cálidda</div><div class="logo-sub">Avance de Obra</div></div>
     </div>
-
     <div class="sidebar-nav">
+      <div class="nav-section">Principal</div>
       <button class="nav-item active" data-view="dashboard" onclick="switchView('dashboard',this)">
-        <span class="nav-icon">📊</span>
-        <span>Dashboard</span>
+        <span class="nav-icon">📊</span><span>Dashboard</span>
       </button>
       <button class="nav-item" data-view="registros" onclick="switchView('registros',this)">
-        <span class="nav-icon">📋</span>
-        <span>Registros</span>
+        <span class="nav-icon">📋</span><span>Mis registros</span>
       </button>
       <button class="nav-item" data-view="nuevo" onclick="switchView('nuevo',this)">
-        <span class="nav-icon">➕</span>
-        <span>Nuevo avance</span>
+        <span class="nav-icon">➕</span><span>Nuevo avance</span>
       </button>
+      <!-- Admin-only nav items -->
+      <div id="admin-nav" class="hidden">
+        <div class="nav-section">Administración</div>
+        <button class="nav-item" data-view="admin-reportes" onclick="switchView('admin-reportes',this)">
+          <span class="nav-icon">🗂️</span><span>Todos los registros</span>
+        </button>
+        <button class="nav-item" data-view="admin-usuarios" onclick="switchView('admin-usuarios',this)">
+          <span class="nav-icon">👥</span><span>Gestión de usuarios</span>
+        </button>
+      </div>
     </div>
-
     <div class="sidebar-footer">
-      <div class="user-email" id="sidebar-email"></div>
+      <div class="user-email" id="sb-email"></div>
+      <div class="user-role-badge" id="sb-role-badge"></div>
       <button class="btn btn-ghost btn-sm" style="color:rgba(255,255,255,.5);width:100%;justify-content:flex-start;" onclick="doLogout()">
         🚪 <span>Salir</span>
       </button>
@@ -298,28 +303,24 @@
     <!-- ── DASHBOARD ── -->
     <div id="view-dashboard" class="view active">
       <div class="page-header">
-        <div class="page-title">Dashboard</div>
-        <div class="page-sub">Resumen general de avance de obras</div>
+        <div class="page-title" id="dash-title">Dashboard</div>
+        <div class="page-sub" id="dash-sub">Cargando…</div>
       </div>
       <div class="page-content">
-        <div class="stats-grid" id="stats-grid">
-          <div class="stat-card"><div class="stat-icon" style="background:#E8F0F9;">📁</div><div><div class="stat-label">Proyectos</div><div class="stat-value" id="stat-proyectos">—</div><div class="stat-hint">activos</div></div></div>
+        <div id="admin-dash-banner" class="admin-banner hidden">
+          <div class="admin-banner-icon">🛡️</div>
+          <div><h3>Vista de Administrador</h3><p>Estás viendo el resumen consolidado de todos los usuarios</p></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon" style="background:#E8F0F9;">📁</div><div><div class="stat-label">Proyectos</div><div class="stat-value" id="stat-proy">—</div><div class="stat-hint" id="stat-proy-hint">activos</div></div></div>
           <div class="stat-card"><div class="stat-icon" style="background:#FFF3E0;">📈</div><div><div class="stat-label">Avance prom.</div><div class="stat-value" id="stat-prom">—</div><div class="stat-hint">promedio general</div></div></div>
           <div class="stat-card"><div class="stat-icon" style="background:#D1FAE5;">✅</div><div><div class="stat-label">Registros</div><div class="stat-value" id="stat-total">—</div><div class="stat-hint">total de entradas</div></div></div>
-          <div class="stat-card"><div class="stat-icon" style="background:#EDE9FE;">🏷️</div><div><div class="stat-label">Segmentos</div><div class="stat-value" id="stat-segs">—</div><div class="stat-hint">categorías</div></div></div>
+          <div class="stat-card" id="stat-usuarios-card" style="display:none;"><div class="stat-icon" style="background:#EDE9FE;">👥</div><div><div class="stat-label">Usuarios</div><div class="stat-value" id="stat-users">—</div><div class="stat-hint">registrados</div></div></div>
         </div>
-
         <div class="charts-grid">
-          <div class="chart-card">
-            <div class="chart-title">Evolución de avance</div>
-            <div class="chart-wrap"><canvas id="chart-line"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">Avance por segmento</div>
-            <div class="chart-wrap"><canvas id="chart-bar"></canvas></div>
-          </div>
+          <div class="chart-card"><div class="chart-title">Evolución de avance</div><div class="chart-wrap"><canvas id="chart-line"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Avance por segmento</div><div class="chart-wrap"><canvas id="chart-bar"></canvas></div></div>
         </div>
-
         <div class="card">
           <div class="chart-title">Estado por proyecto (último avance)</div>
           <div class="project-list" id="project-list">
@@ -329,95 +330,64 @@
       </div>
     </div>
 
-    <!-- ── REGISTROS ── -->
+    <!-- ── MIS REGISTROS ── -->
     <div id="view-registros" class="view">
       <div class="page-header">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-          <div>
-            <div class="page-title">Registros</div>
-            <div class="page-sub" id="records-count">Cargando…</div>
-          </div>
-          <div class="page-actions">
-            <button class="btn btn-secondary btn-sm" onclick="exportExcel()">📊 Excel</button>
-            <button class="btn btn-secondary btn-sm" onclick="exportPDF()">📄 PDF</button>
+          <div><div class="page-title">Mis registros</div><div class="page-sub" id="my-records-count">Cargando…</div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="exportExcel('my')">📊 Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportPDF('my')">📄 PDF</button>
           </div>
         </div>
       </div>
       <div class="page-content">
-
-        <!-- Filters -->
         <div class="filter-bar">
           <div class="filter-title">🔍 Filtros</div>
           <div class="filter-row">
-            <div><label class="field-label">Cuenta contrato</label><input id="f-cuenta" class="input" placeholder="CC-2024-…" /></div>
-            <div>
-              <label class="field-label">Segmento</label>
-              <select id="f-seg" class="input">
-                <option value="">Todos</option>
-                <option>Residencial</option><option>Comercial</option>
-                <option>Industrial</option><option>GNV</option><option>Otros</option>
-              </select>
-            </div>
-            <div><label class="field-label">Proyecto</label><input id="f-proyecto" class="input" placeholder="Nombre…" /></div>
+            <div><label class="lbl">Cuenta contrato</label><input id="mf-cuenta" class="input" placeholder="CC-2024-…"/></div>
+            <div><label class="lbl">Segmento</label>
+              <select id="mf-seg" class="input"><option value="">Todos</option>
+                <option>Residencial</option><option>Comercial</option><option>Industrial</option><option>GNV</option><option>Otros</option>
+              </select></div>
+            <div><label class="lbl">Proyecto</label><input id="mf-proyecto" class="input" placeholder="Nombre…"/></div>
             <div style="display:flex;gap:6px;align-items:flex-end;">
-              <button class="btn btn-primary btn-sm" onclick="applyFilters()">Buscar</button>
-              <button class="btn btn-ghost btn-sm" onclick="clearFilters()" title="Limpiar">✕</button>
+              <button class="btn btn-primary btn-sm" onclick="applyFilters('my')">Buscar</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearFilters('my')" title="Limpiar">✕</button>
             </div>
           </div>
           <div class="filter-row2">
-            <div><label class="field-label">Desde</label><input id="f-desde" class="input" type="date" /></div>
-            <div><label class="field-label">Hasta</label><input id="f-hasta" class="input" type="date" /></div>
+            <div><label class="lbl">Desde</label><input id="mf-desde" class="input" type="date"/></div>
+            <div><label class="lbl">Hasta</label><input id="mf-hasta" class="input" type="date"/></div>
           </div>
         </div>
-
-        <!-- Table -->
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Cuenta Contrato</th>
-                <th>Segmento</th>
-                <th>Proyecto</th>
-                <th>Fecha</th>
-                <th style="min-width:160px;">Avance</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="table-body">
-              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Cargando…</div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Cuenta Contrato</th><th>Segmento</th><th>Proyecto</th><th>Fecha</th><th style="min-width:150px;">Avance</th><th></th></tr></thead>
+          <tbody id="my-table-body"><tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Cargando…</div></div></td></tr></tbody>
+        </table></div>
       </div>
     </div>
 
     <!-- ── NUEVO ── -->
     <div id="view-nuevo" class="view">
-      <div class="page-header">
-        <div class="page-title">Nuevo avance</div>
-        <div class="page-sub">Registra el avance de un proyecto</div>
-      </div>
+      <div class="page-header"><div class="page-title">Nuevo avance</div><div class="page-sub">Registra el avance de uno de tus proyectos</div></div>
       <div class="page-content">
-        <div class="card" style="max-width:520px;" id="nuevo-form-card">
-          <div id="nuevo-error" class="hidden" style="background:#FEE2E2;color:var(--red);font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;"></div>
+        <div class="card" style="max-width:520px;" id="nuevo-card">
+          <div id="nuevo-err" class="auth-err hidden" style="margin-bottom:14px;"></div>
           <div class="form-grid">
-            <div class="full"><label class="field-label">Cuenta Contrato</label><input id="n-cuenta" class="input" placeholder="Ej. CC-2024-001" /></div>
-            <div>
-              <label class="field-label">Segmento</label>
-              <select id="n-seg" class="input">
-                <option value="">Seleccionar…</option>
-                <option>Residencial</option><option>Comercial</option>
-                <option>Industrial</option><option>GNV</option><option>Otros</option>
-              </select>
-            </div>
-            <div><label class="field-label">Fecha</label><input id="n-fecha" class="input" type="date" /></div>
-            <div class="full"><label class="field-label">Proyecto</label><input id="n-proyecto" class="input" placeholder="Nombre del proyecto" /></div>
+            <div class="full"><label class="lbl">Cuenta Contrato</label><input id="n-cuenta" class="input" placeholder="Ej. CC-2024-001"/></div>
+            <div><label class="lbl">Segmento</label>
+              <select id="n-seg" class="input"><option value="">Seleccionar…</option>
+                <option>Residencial</option><option>Comercial</option><option>Industrial</option><option>GNV</option><option>Otros</option>
+              </select></div>
+            <div><label class="lbl">Fecha</label><input id="n-fecha" class="input" type="date"/></div>
+            <div class="full"><label class="lbl">Proyecto</label><input id="n-proyecto" class="input" placeholder="Nombre del proyecto"/></div>
             <div class="full">
-              <label class="field-label">Avance (%)</label>
-              <input id="n-avance" class="input" type="number" min="0" max="100" step="0.01" placeholder="0 – 100" oninput="updatePreviewBar()" />
+              <label class="lbl">Avance (%)</label>
+              <input id="n-avance" class="input" type="number" min="0" max="100" step="0.01" placeholder="0 – 100" oninput="updatePreview()"/>
               <div class="preview-bar" id="preview-wrap" style="display:none;">
                 <p>Vista previa</p>
-                <div class="pbar-track"><div class="pbar-fill mid" id="preview-fill" style="width:0%"></div></div>
+                <div class="pbar-track"><div class="pbar-fill pbar-mid" id="preview-fill" style="width:0%"></div></div>
                 <div class="preview-pct" id="preview-pct">0%</div>
               </div>
             </div>
@@ -426,11 +396,62 @@
             <button class="btn btn-primary flex-1" id="save-btn" onclick="saveNuevo()" style="justify-content:center;">💾 Guardar registro</button>
           </div>
         </div>
-        <!-- Success state -->
-        <div id="nuevo-success" class="card hidden" style="max-width:520px;text-align:center;padding:60px 20px;">
+        <div id="nuevo-ok" class="card hidden" style="max-width:520px;text-align:center;padding:60px 20px;">
           <div style="font-size:48px;margin-bottom:12px;">✅</div>
-          <div style="font-size:17px;font-weight:800;color:var(--text);">¡Registro guardado!</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Redirigiendo a la lista…</div>
+          <div style="font-size:17px;font-weight:800;">¡Registro guardado!</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Redirigiendo a tus registros…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: TODOS LOS REGISTROS ── -->
+    <div id="view-admin-reportes" class="view">
+      <div class="page-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div><div class="page-title">Todos los registros</div><div class="page-sub" id="all-records-count">Vista de administrador</div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="exportExcel('all')">📊 Excel</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportPDF('all')">📄 PDF</button>
+          </div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="filter-bar">
+          <div class="filter-title">🔍 Filtros</div>
+          <div class="filter-row" style="grid-template-columns:1fr 1fr 1fr 1fr auto;">
+            <div><label class="lbl">Cuenta contrato</label><input id="af-cuenta" class="input" placeholder="CC-2024-…"/></div>
+            <div><label class="lbl">Segmento</label>
+              <select id="af-seg" class="input"><option value="">Todos</option>
+                <option>Residencial</option><option>Comercial</option><option>Industrial</option><option>GNV</option><option>Otros</option>
+              </select></div>
+            <div><label class="lbl">Proyecto</label><input id="af-proyecto" class="input" placeholder="Nombre…"/></div>
+            <div><label class="lbl">Usuario</label><input id="af-usuario" class="input" placeholder="Nombre o correo…"/></div>
+            <div style="display:flex;gap:6px;align-items:flex-end;">
+              <button class="btn btn-primary btn-sm" onclick="applyFilters('all')">Buscar</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearFilters('all')">✕</button>
+            </div>
+          </div>
+          <div class="filter-row2">
+            <div><label class="lbl">Desde</label><input id="af-desde" class="input" type="date"/></div>
+            <div><label class="lbl">Hasta</label><input id="af-hasta" class="input" type="date"/></div>
+          </div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Usuario</th><th>Cuenta Contrato</th><th>Segmento</th><th>Proyecto</th><th>Fecha</th><th style="min-width:150px;">Avance</th><th></th></tr></thead>
+          <tbody id="all-table-body"><tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Cargando…</div></div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN: USUARIOS ── -->
+    <div id="view-admin-usuarios" class="view">
+      <div class="page-header"><div class="page-title">Gestión de usuarios</div><div class="page-sub">Administra roles y accesos</div></div>
+      <div class="page-content">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Registros</th><th>Último acceso</th><th>Acciones</th></tr></thead>
+            <tbody id="users-table-body"><tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Cargando…</div></div></td></tr></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -441,29 +462,24 @@
 <!-- ── EDIT MODAL ── -->
 <div id="edit-modal" class="modal-overlay hidden">
   <div class="modal-box">
-    <div class="modal-header">
-      <h3>✏️ Editar registro</h3>
-      <button class="btn btn-ghost btn-icon" onclick="closeEditModal()">✕</button>
-    </div>
+    <div class="modal-header"><h3>✏️ Editar registro</h3><button class="btn btn-ghost btn-icon" onclick="closeModal('edit-modal')">✕</button></div>
     <div class="modal-body">
-      <div id="edit-error" class="hidden" style="background:#FEE2E2;color:var(--red);font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;"></div>
+      <div id="edit-err" class="auth-err hidden" style="margin-bottom:14px;"></div>
+      <input type="hidden" id="e-id"/>
+      <input type="hidden" id="e-owner"/>
       <div class="form-grid">
-        <input type="hidden" id="e-id" />
-        <div class="full"><label class="field-label">Cuenta Contrato</label><input id="e-cuenta" class="input" /></div>
-        <div>
-          <label class="field-label">Segmento</label>
+        <div class="full"><label class="lbl">Cuenta Contrato</label><input id="e-cuenta" class="input"/></div>
+        <div><label class="lbl">Segmento</label>
           <select id="e-seg" class="input">
-            <option>Residencial</option><option>Comercial</option>
-            <option>Industrial</option><option>GNV</option><option>Otros</option>
-          </select>
-        </div>
-        <div><label class="field-label">Fecha</label><input id="e-fecha" class="input" type="date" /></div>
-        <div class="full"><label class="field-label">Proyecto</label><input id="e-proyecto" class="input" /></div>
-        <div class="full"><label class="field-label">Avance (%)</label><input id="e-avance" class="input" type="number" min="0" max="100" step="0.01" /></div>
+            <option>Residencial</option><option>Comercial</option><option>Industrial</option><option>GNV</option><option>Otros</option>
+          </select></div>
+        <div><label class="lbl">Fecha</label><input id="e-fecha" class="input" type="date"/></div>
+        <div class="full"><label class="lbl">Proyecto</label><input id="e-proyecto" class="input"/></div>
+        <div class="full"><label class="lbl">Avance (%)</label><input id="e-avance" class="input" type="number" min="0" max="100" step="0.01"/></div>
       </div>
       <div class="form-actions">
-        <button class="btn btn-primary flex-1" id="edit-save-btn" onclick="saveEdit()" style="justify-content:center;">💾 Actualizar</button>
-        <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn btn-primary flex-1" id="edit-btn" onclick="saveEdit()" style="justify-content:center;">💾 Actualizar</button>
+        <button class="btn btn-secondary" onclick="closeModal('edit-modal')">Cancelar</button>
       </div>
     </div>
   </div>
@@ -477,143 +493,267 @@
       <h3 style="font-size:16px;font-weight:800;margin-bottom:6px;">¿Eliminar registro?</h3>
       <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">Esta acción no se puede deshacer.</p>
       <div style="display:flex;gap:10px;">
-        <button class="btn btn-danger flex-1" id="del-confirm-btn" onclick="confirmDelete()" style="justify-content:center;">✓ Sí, eliminar</button>
-        <button class="btn btn-secondary" onclick="closeDelModal()">Cancelar</button>
+        <button class="btn btn-danger flex-1" id="del-btn" onclick="confirmDelete()" style="justify-content:center;">✓ Sí, eliminar</button>
+        <button class="btn btn-secondary" onclick="closeModal('del-modal')">Cancelar</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── TOAST ── -->
+<!-- ── ROLE MODAL ── -->
+<div id="role-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-header"><h3>🛡️ Cambiar rol</h3><button class="btn btn-ghost btn-icon" onclick="closeModal('role-modal')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Selecciona el rol para <strong id="role-target-name"></strong></p>
+      <input type="hidden" id="role-target-id"/>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;" id="role-opt-user">
+          <input type="radio" name="role-pick" value="user" style="width:16px;height:16px;"/> 
+          <div><div style="font-size:13px;font-weight:600;">👤 Usuario</div><div style="font-size:11px;color:var(--muted);">Solo ve y gestiona sus propios registros</div></div>
+        </label>
+        <label style="display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;" id="role-opt-admin">
+          <input type="radio" name="role-pick" value="admin" style="width:16px;height:16px;"/>
+          <div><div style="font-size:13px;font-weight:600;">🛡️ Administrador</div><div style="font-size:11px;color:var(--muted);">Acceso completo a todos los registros y usuarios</div></div>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary flex-1" onclick="saveRole()" style="justify-content:center;">Guardar rol</button>
+        <button class="btn btn-secondary" onclick="closeModal('role-modal')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
-<!-- ═══════════════════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════════ -->
 <script>
-// ────────────────────────────────────────────────────────
-// ⚠️  CONFIGURA AQUÍ tus credenciales de Supabase
-// ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// ⚠️  CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ
+// ─────────────────────────────────────────────────────────
 const SUPABASE_URL  = 'https://quytloiwycovzbsoqhoa.supabase.co'
 const SUPABASE_ANON = 'sb_publishable_cVqNFbqI-mUz7etcOs2tDw_UiSU3mdg'
-// ────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 
 const { createClient } = supabase
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON)
 
-const SEGMENTOS = ['Residencial','Comercial','Industrial','GNV','Otros']
-let allData   = []
-let filtered  = []
-let delTarget = null
-let chartLine = null
-let chartBar  = null
+// ── STATE ────────────────────────────────────────────────
+let CURRENT_USER    = null   // Supabase auth user
+let CURRENT_PROFILE = null   // { id, full_name, role, email }
+let myData          = []     // registros del usuario actual
+let allData         = []     // todos los registros (solo admin)
+let allProfiles     = []     // todos los perfiles (solo admin)
+let myFiltered      = []
+let allFiltered     = []
+let delTarget       = null
+let chartLine       = null
+let chartBar        = null
 
-// ── INIT ──────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await sb.auth.getSession()
-  if (session) showApp(session.user)
-
-  // Set today's date in form
+  if (session) await initApp(session.user)
   document.getElementById('n-fecha').value = today()
 })
 
-sb.auth.onAuthStateChange((_e, session) => {
-  if (session) showApp(session.user)
-  else showLogin()
+sb.auth.onAuthStateChange(async (_e, session) => {
+  if (session) await initApp(session.user)
+  else showAuthScreen()
 })
 
-// ── AUTH ──────────────────────────────────────────────────
+async function initApp(user) {
+  CURRENT_USER = user
+  CURRENT_PROFILE = await fetchOrCreateProfile(user)
+  showApp()
+  await loadData()
+}
+
+// ── PROFILE ──────────────────────────────────────────────
+async function fetchOrCreateProfile(user) {
+  let { data: profile } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) {
+    const name = user.user_metadata?.full_name || user.email.split('@')[0]
+    const { data: created } = await sb
+      .from('profiles')
+      .insert([{ id: user.id, full_name: name, email: user.email, role: 'user' }])
+      .select().single()
+    profile = created
+  }
+  return profile
+}
+
+// ── AUTH TABS ─────────────────────────────────────────────
+function showTab(tab) {
+  document.getElementById('form-login').classList.toggle('hidden', tab !== 'login')
+  document.getElementById('form-register').classList.toggle('hidden', tab !== 'register')
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login')
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register')
+}
+
+function togglePw(id) {
+  const el = document.getElementById(id)
+  el.type = el.type === 'password' ? 'text' : 'password'
+}
+
 async function doLogin() {
-  const email = document.getElementById('login-email').value.trim()
-  const pw    = document.getElementById('login-pw').value
-  const btn   = document.getElementById('login-btn')
-  const err   = document.getElementById('login-error')
+  const email = document.getElementById('l-email').value.trim()
+  const pw    = document.getElementById('l-pw').value
+  const btn   = document.getElementById('l-btn')
+  const err   = document.getElementById('l-err')
   err.classList.add('hidden')
-  btn.textContent = 'Ingresando…'
-  btn.disabled = true
+  btn.textContent = 'Ingresando…'; btn.disabled = true
   const { error } = await sb.auth.signInWithPassword({ email, password: pw })
-  btn.textContent = 'Ingresar'
-  btn.disabled = false
+  btn.textContent = 'Ingresar'; btn.disabled = false
   if (error) { err.textContent = error.message; err.classList.remove('hidden') }
 }
 
-async function doLogout() {
-  await sb.auth.signOut()
+async function doRegister() {
+  const name  = document.getElementById('r-name').value.trim()
+  const email = document.getElementById('r-email').value.trim()
+  const pw    = document.getElementById('r-pw').value
+  const btn   = document.getElementById('r-btn')
+  const err   = document.getElementById('r-err')
+  const ok    = document.getElementById('r-ok')
+  err.classList.add('hidden'); ok.classList.add('hidden')
+  if (!name)     { err.textContent = 'Ingresa tu nombre'; err.classList.remove('hidden'); return }
+  if (pw.length < 6) { err.textContent = 'Contraseña mínimo 6 caracteres'; err.classList.remove('hidden'); return }
+  btn.textContent = 'Creando cuenta…'; btn.disabled = true
+  const { error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: name } } })
+  btn.textContent = 'Crear cuenta'; btn.disabled = false
+  if (error) { err.textContent = error.message; err.classList.remove('hidden') }
+  else { ok.textContent = '¡Cuenta creada! Revisa tu correo para confirmar.'; ok.classList.remove('hidden') }
 }
 
-function togglePw() {
-  const inp = document.getElementById('login-pw')
-  inp.type = inp.type === 'password' ? 'text' : 'password'
-}
+async function doLogout() { await sb.auth.signOut() }
 
-function showApp(user) {
-  document.getElementById('login-screen').classList.add('hidden')
-  document.getElementById('app').classList.remove('hidden')
-  document.getElementById('sidebar-email').textContent = user.email
-  loadData()
-}
-
-function showLogin() {
-  document.getElementById('login-screen').classList.remove('hidden')
-  document.getElementById('app').classList.add('hidden')
-}
-
-// ── ENTER KEY on login ────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden'))
-    doLogin()
+  if (e.key === 'Enter' && !document.getElementById('auth-screen').classList.contains('hidden')) {
+    document.getElementById('form-login').classList.contains('hidden') ? doRegister() : doLogin()
+  }
 })
+
+// ── SHOW APP ──────────────────────────────────────────────
+function showApp() {
+  document.getElementById('auth-screen').classList.add('hidden')
+  document.getElementById('app').classList.remove('hidden')
+
+  const p = CURRENT_PROFILE
+  document.getElementById('sb-email').textContent = p.email
+  const badge = document.getElementById('sb-role-badge')
+  if (p.role === 'admin') {
+    badge.textContent = '🛡️ Admin'; badge.className = 'user-role-badge role-admin'
+    document.getElementById('admin-nav').classList.remove('hidden')
+    document.getElementById('stat-usuarios-card').style.display = 'flex'
+    document.getElementById('admin-dash-banner').classList.remove('hidden')
+  } else {
+    badge.textContent = '👤 Usuario'; badge.className = 'user-role-badge role-user'
+    document.getElementById('admin-nav').classList.add('hidden')
+    document.getElementById('stat-usuarios-card').style.display = 'none'
+    document.getElementById('admin-dash-banner').classList.add('hidden')
+  }
+
+  // Update sidebar label
+  const regBtn = document.querySelector('[data-view="registros"] span:last-child')
+  if (regBtn) regBtn.textContent = 'Mis registros'
+}
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').classList.remove('hidden')
+  document.getElementById('app').classList.add('hidden')
+  CURRENT_USER = null; CURRENT_PROFILE = null
+}
 
 // ── NAVIGATION ────────────────────────────────────────────
 function switchView(name, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
   document.getElementById('view-' + name).classList.add('active')
-  btn.classList.add('active')
-
-  if (name === 'nuevo') resetNuevoForm()
-  if (name === 'registros') renderTable(filtered)
+  if (btn) btn.classList.add('active')
+  if (name === 'nuevo') resetNuevo()
+  if (name === 'registros') renderMyTable(myFiltered)
+  if (name === 'admin-reportes') renderAllTable(allFiltered)
+  if (name === 'admin-usuarios') renderUsersTable()
+  if (name === 'dashboard') renderDashboard()
 }
 
-// ── DATA ──────────────────────────────────────────────────
+// ── LOAD DATA ─────────────────────────────────────────────
 async function loadData() {
-  const { data, error } = await sb
+  if (!CURRENT_USER) return
+
+  // Always load user's own data
+  const { data: mine } = await sb
     .from('avance_obra')
     .select('*')
+    .eq('user_id', CURRENT_USER.id)
     .order('fecha', { ascending: false })
     .order('created_at', { ascending: false })
-  if (error) { toast('Error cargando datos: ' + error.message, 'err'); return }
-  allData  = data ?? []
-  filtered = [...allData]
+  myData     = mine ?? []
+  myFiltered = [...myData]
+
+  if (CURRENT_PROFILE?.role === 'admin') {
+    // Load ALL records with profile join
+    const { data: all } = await sb
+      .from('avance_obra')
+      .select('*, profiles(full_name, email)')
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+    allData     = all ?? []
+    allFiltered = [...allData]
+
+    // Load all profiles
+    const { data: profiles } = await sb.from('profiles').select('*')
+    allProfiles = profiles ?? []
+    document.getElementById('stat-users').textContent = allProfiles.length
+  }
+
   renderDashboard()
-  renderTable(filtered)
+  renderMyTable(myFiltered)
+  if (CURRENT_PROFILE?.role === 'admin') renderAllTable(allFiltered)
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────
 function renderDashboard() {
-  const d = allData
-  if (!d.length) return
+  const isAdmin = CURRENT_PROFILE?.role === 'admin'
+  const d = isAdmin ? allData : myData
+
+  document.getElementById('dash-title').textContent = isAdmin ? 'Dashboard — Vista Completa' : 'Dashboard'
+  document.getElementById('dash-sub').textContent   = isAdmin
+    ? `Consolidado de ${allProfiles.length} usuario(s)`
+    : `Tus proyectos y avances`
+
+  if (!d.length) {
+    document.getElementById('stat-proy').textContent  = '0'
+    document.getElementById('stat-prom').textContent  = '0%'
+    document.getElementById('stat-total').textContent = '0'
+    document.getElementById('project-list').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-text">Sin registros aún</div><div class="empty-hint">Agrega el primer avance de obra</div></div>'
+    return
+  }
 
   const proyectos = [...new Set(d.map(r => r.proyecto))]
-  const segmentos = [...new Set(d.map(r => r.segmento))]
-
-  // Last avance per project
   const latestByProj = {}
   d.forEach(r => { if (!latestByProj[r.proyecto]) latestByProj[r.proyecto] = r })
   const avances = Object.values(latestByProj).map(r => Number(r.avance))
-  const prom = avances.reduce((a, b) => a + b, 0) / avances.length
+  const prom    = avances.reduce((a, b) => a + b, 0) / avances.length
 
-  document.getElementById('stat-proyectos').textContent = proyectos.length
-  document.getElementById('stat-prom').textContent      = prom.toFixed(1) + '%'
-  document.getElementById('stat-total').textContent     = d.length
-  document.getElementById('stat-segs').textContent      = segmentos.length
+  document.getElementById('stat-proy').textContent  = proyectos.length
+  document.getElementById('stat-prom').textContent  = prom.toFixed(1) + '%'
+  document.getElementById('stat-total').textContent = d.length
 
-  // Line chart — last 10 records chronologically
-  const evo = [...d].reverse().slice(-10)
+  // Line chart
+  const evo = [...d].reverse().slice(-12)
   renderLineChart(evo)
 
-  // Bar chart — avg avance by segmento
-  const segData = segmentos.map(s => {
+  // Bar chart
+  const segs = [...new Set(d.map(r => r.segmento))]
+  const segData = segs.map(s => {
     const rows = d.filter(r => r.segmento === s)
     return { s, avg: rows.reduce((a, b) => a + Number(b.avance), 0) / rows.length }
   })
@@ -626,15 +766,15 @@ function renderDashboard() {
     .sort((a, b) => Number(b[1].avance) - Number(a[1].avance))
     .forEach(([proj, row]) => {
       const pct  = Number(row.avance)
-      const cls  = pct >= 80 ? 'high' : pct >= 50 ? 'mid' : 'low'
+      const cls  = pct >= 80 ? 'pbar-high' : pct >= 50 ? 'pbar-mid' : 'pbar-low'
       const bcls = pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-blue' : 'badge-orange'
+      const ownerHtml = isAdmin && row.profiles
+        ? `<span style="font-size:11px;color:var(--muted);"> · ${esc(row.profiles.full_name || row.profiles.email)}</span>` : ''
       list.insertAdjacentHTML('beforeend', `
         <div class="project-row">
           <div>
-            <div class="project-name">${esc(proj)}</div>
-            <div class="pbar-track" style="height:6px;">
-              <div class="pbar-fill ${cls}" style="width:${pct}%"></div>
-            </div>
+            <div class="project-name">${esc(proj)}${ownerHtml}</div>
+            <div class="pbar-track" style="height:6px;"><div class="pbar-fill ${cls}" style="width:${pct}%"></div></div>
           </div>
           <span class="badge ${bcls}" style="min-width:54px;justify-content:center;">${pct.toFixed(1)}%</span>
         </div>`)
@@ -645,27 +785,16 @@ function renderLineChart(rows) {
   const ctx = document.getElementById('chart-line').getContext('2d')
   if (chartLine) chartLine.destroy()
   chartLine = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: rows.map(r => fmtDateShort(r.fecha)),
-      datasets: [{
-        label: 'Avance %',
-        data: rows.map(r => Number(r.avance)),
-        borderColor: '#003F7D', borderWidth: 2.5,
-        pointBackgroundColor: '#F47920', pointRadius: 4,
-        fill: true,
-        backgroundColor: 'rgba(0,63,125,.06)',
-        tension: .35
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 100, ticks: { font: { size: 11 }, color: '#9ca3af' }, grid: { color: '#f0f0f0' } },
-        x: { ticks: { font: { size: 11 }, color: '#9ca3af' }, grid: { display: false } }
-      },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y}%` } } }
-    }
+    type:'line',
+    data:{ labels: rows.map(r => fmtShort(r.fecha)),
+      datasets:[{ label:'Avance %', data: rows.map(r => Number(r.avance)),
+        borderColor:'#003F7D', borderWidth:2.5,
+        pointBackgroundColor:'#F47920', pointRadius:4,
+        fill:true, backgroundColor:'rgba(0,63,125,.06)', tension:.35 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ min:0, max:100, ticks:{ font:{size:11}, color:'#9ca3af' }, grid:{color:'#f0f0f0'} },
+               x:{ ticks:{ font:{size:11}, color:'#9ca3af' }, grid:{display:false} } },
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => `${c.parsed.y}%` } } } }
   })
 }
 
@@ -674,101 +803,172 @@ function renderBarChart(segData) {
   const ctx = document.getElementById('chart-bar').getContext('2d')
   if (chartBar) chartBar.destroy()
   chartBar = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: segData.map(s => s.s),
-      datasets: [{
-        label: 'Avance prom %',
-        data: segData.map(s => parseFloat(s.avg.toFixed(1))),
-        backgroundColor: segData.map((_, i) => COLORS[i % COLORS.length]),
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 100, ticks: { font: { size: 11 }, color: '#9ca3af' }, grid: { color: '#f0f0f0' } },
-        x: { ticks: { font: { size: 11 }, color: '#9ca3af' }, grid: { display: false } }
-      },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y}%` } } }
-    }
+    type:'bar',
+    data:{ labels: segData.map(s => s.s),
+      datasets:[{ data: segData.map(s => parseFloat(s.avg.toFixed(1))),
+        backgroundColor: segData.map((_, i) => COLORS[i % COLORS.length]), borderRadius:6 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ min:0, max:100, ticks:{ font:{size:11}, color:'#9ca3af' }, grid:{color:'#f0f0f0'} },
+               x:{ ticks:{ font:{size:11}, color:'#9ca3af' }, grid:{display:false} } },
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => `${c.parsed.y}%` } } } }
   })
 }
 
-// ── TABLE ─────────────────────────────────────────────────
-function renderTable(rows) {
-  const tbody = document.getElementById('table-body')
-  document.getElementById('records-count').textContent = rows.length + ' resultado' + (rows.length !== 1 ? 's' : '')
+// ── MY RECORDS TABLE ──────────────────────────────────────
+function renderMyTable(rows) {
+  const tbody = document.getElementById('my-table-body')
+  document.getElementById('my-records-count').textContent = rows.length + ' resultado' + (rows.length !== 1 ? 's' : '')
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Sin resultados</div><div class="empty-hint">Prueba con otros filtros</div></div></td></tr>`
+    tbody.innerHTML = emptyRow(6, '🔍', 'Sin resultados')
     return
   }
+  tbody.innerHTML = rows.map(r => rowHtml(r, false)).join('')
+}
+
+// ── ALL RECORDS TABLE (admin) ─────────────────────────────
+function renderAllTable(rows) {
+  const tbody = document.getElementById('all-table-body')
+  document.getElementById('all-records-count').textContent = rows.length + ' registro' + (rows.length !== 1 ? 's' : '') + ' en total'
+  if (!rows.length) { tbody.innerHTML = emptyRow(7, '🔍', 'Sin resultados'); return }
   tbody.innerHTML = rows.map(r => {
     const pct  = Number(r.avance)
-    const cls  = pct >= 80 ? 'high' : pct >= 50 ? 'mid' : 'low'
+    const cls  = pct >= 80 ? 'pbar-high' : pct >= 50 ? 'pbar-mid' : 'pbar-low'
     const bcls = pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-blue' : 'badge-orange'
-    return `
-      <tr>
-        <td><span class="td-mono">${esc(r.cuenta_contrato)}</span></td>
-        <td><span class="badge badge-blue">${esc(r.segmento)}</span></td>
-        <td style="max-width:180px;" class="truncate">${esc(r.proyecto)}</td>
-        <td style="color:var(--muted);white-space:nowrap;">${fmtDate(r.fecha)}</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div class="pbar-track" style="flex:1;"><div class="pbar-fill ${cls}" style="width:${pct}%"></div></div>
-            <span class="badge ${bcls}" style="min-width:50px;justify-content:center;">${pct.toFixed(1)}%</span>
+    const profile = r.profiles
+    const initials = profile ? (profile.full_name || profile.email).slice(0,2).toUpperCase() : '??'
+    const avatarColor = strColor(r.user_id)
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="user-avatar" style="background:${avatarColor};">${initials}</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;">${esc(profile?.full_name || '—')}</div>
+            <div style="font-size:11px;color:var(--muted);">${esc(profile?.email || '')}</div>
           </div>
-        </td>
-        <td>
-          <div class="td-actions">
-            <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="openEditModal('${r.id}')">✏️</button>
-            <button class="btn btn-ghost btn-icon btn-sm" title="Eliminar" onclick="openDelModal('${r.id}')">🗑️</button>
-          </div>
-        </td>
-      </tr>`
+        </div>
+      </td>
+      <td><span class="td-mono">${esc(r.cuenta_contrato)}</span></td>
+      <td><span class="badge badge-blue">${esc(r.segmento)}</span></td>
+      <td style="max-width:160px;" class="truncate">${esc(r.proyecto)}</td>
+      <td style="color:var(--muted);white-space:nowrap;">${fmtDate(r.fecha)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="pbar-track" style="flex:1;"><div class="pbar-fill ${cls}" style="width:${pct}%"></div></div>
+          <span class="badge ${bcls}" style="min-width:48px;justify-content:center;">${pct.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td><div class="td-actions">
+        <button class="btn btn-ghost btn-icon btn-sm" title="Editar" onclick="openEdit('${r.id}','all')">✏️</button>
+        <button class="btn btn-ghost btn-icon btn-sm" title="Eliminar" onclick="openDel('${r.id}')">🗑️</button>
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+function rowHtml(r, isAdmin) {
+  const pct  = Number(r.avance)
+  const cls  = pct >= 80 ? 'pbar-high' : pct >= 50 ? 'pbar-mid' : 'pbar-low'
+  const bcls = pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-blue' : 'badge-orange'
+  return `<tr>
+    <td><span class="td-mono">${esc(r.cuenta_contrato)}</span></td>
+    <td><span class="badge badge-blue">${esc(r.segmento)}</span></td>
+    <td style="max-width:180px;" class="truncate">${esc(r.proyecto)}</td>
+    <td style="color:var(--muted);white-space:nowrap;">${fmtDate(r.fecha)}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pbar-track" style="flex:1;"><div class="pbar-fill ${cls}" style="width:${pct}%"></div></div>
+        <span class="badge ${bcls}" style="min-width:48px;justify-content:center;">${pct.toFixed(1)}%</span>
+      </div>
+    </td>
+    <td><div class="td-actions">
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="openEdit('${r.id}','my')">✏️</button>
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="openDel('${r.id}')">🗑️</button>
+    </div></td>
+  </tr>`
+}
+
+// ── USERS TABLE ───────────────────────────────────────────
+function renderUsersTable() {
+  if (CURRENT_PROFILE?.role !== 'admin') return
+  const tbody = document.getElementById('users-table-body')
+  if (!allProfiles.length) { tbody.innerHTML = emptyRow(6, '👥', 'Sin usuarios'); return }
+  
+  tbody.innerHTML = allProfiles.map(p => {
+    const count = allData.filter(r => r.user_id === p.id).length
+    const avatarColor = strColor(p.id)
+    const initials = (p.full_name || p.email).slice(0,2).toUpperCase()
+    const roleBadge = p.role === 'admin'
+      ? '<span class="badge badge-orange">🛡️ Admin</span>'
+      : '<span class="badge badge-gray">👤 Usuario</span>'
+    const isSelf = p.id === CURRENT_USER.id
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="user-avatar" style="background:${avatarColor};">${initials}</div>
+          <span style="font-weight:600;font-size:13px;">${esc(p.full_name || '—')}${isSelf ? ' <span style="font-size:10px;color:var(--muted);">(tú)</span>' : ''}</span>
+        </div>
+      </td>
+      <td style="color:var(--muted);">${esc(p.email)}</td>
+      <td>${roleBadge}</td>
+      <td><span style="font-weight:600;">${count}</span> registro${count !== 1 ? 's' : ''}</td>
+      <td style="color:var(--muted);font-size:12px;">${p.last_sign_in ? fmtDate(p.last_sign_in.slice(0,10)) : '—'}</td>
+      <td>
+        ${!isSelf ? `<button class="btn btn-secondary btn-sm" onclick="openRoleModal('${p.id}','${esc(p.full_name || p.email)}','${p.role}')">🛡️ Cambiar rol</button>` : '<span style="font-size:11px;color:var(--muted);">—</span>'}
+      </td>
+    </tr>`
   }).join('')
 }
 
 // ── FILTERS ───────────────────────────────────────────────
-function applyFilters() {
-  const cuenta  = document.getElementById('f-cuenta').value.trim().toLowerCase()
-  const seg     = document.getElementById('f-seg').value
-  const proyecto= document.getElementById('f-proyecto').value.trim().toLowerCase()
-  const desde   = document.getElementById('f-desde').value
-  const hasta   = document.getElementById('f-hasta').value
+function applyFilters(scope) {
+  const pre = scope === 'my' ? 'mf' : 'af'
+  const cuenta   = v(pre + '-cuenta').toLowerCase()
+  const seg      = v(pre + '-seg')
+  const proyecto = v(pre + '-proyecto').toLowerCase()
+  const desde    = v(pre + '-desde')
+  const hasta    = v(pre + '-hasta')
+  const usuario  = scope === 'all' ? v('af-usuario').toLowerCase() : ''
 
-  filtered = allData.filter(r => {
+  const src = scope === 'my' ? myData : allData
+  const out = src.filter(r => {
     if (cuenta   && !r.cuenta_contrato.toLowerCase().includes(cuenta))   return false
     if (seg      && r.segmento !== seg)                                   return false
     if (proyecto && !r.proyecto.toLowerCase().includes(proyecto))         return false
     if (desde    && r.fecha < desde)                                      return false
     if (hasta    && r.fecha > hasta)                                      return false
+    if (usuario  && r.profiles) {
+      const name  = (r.profiles.full_name || '').toLowerCase()
+      const email = (r.profiles.email     || '').toLowerCase()
+      if (!name.includes(usuario) && !email.includes(usuario)) return false
+    }
     return true
   })
-  renderTable(filtered)
+  if (scope === 'my') { myFiltered = out; renderMyTable(out) }
+  else                { allFiltered = out; renderAllTable(out) }
 }
 
-function clearFilters() {
-  ['f-cuenta','f-seg','f-proyecto','f-desde','f-hasta'].forEach(id => {
-    const el = document.getElementById(id)
-    el.value = el.tagName === 'SELECT' ? '' : ''
-  })
-  filtered = [...allData]
-  renderTable(filtered)
+function clearFilters(scope) {
+  const pre = scope === 'my' ? 'mf' : 'af'
+  const ids = scope === 'my'
+    ? ['mf-cuenta','mf-seg','mf-proyecto','mf-desde','mf-hasta']
+    : ['af-cuenta','af-seg','af-proyecto','af-usuario','af-desde','af-hasta']
+  ids.forEach(id => { const el = document.getElementById(id); if(el) el.value = '' })
+  if (scope === 'my') { myFiltered = [...myData]; renderMyTable(myFiltered) }
+  else                { allFiltered = [...allData]; renderAllTable(allFiltered) }
 }
 
 // ── NEW RECORD ────────────────────────────────────────────
-function resetNuevoForm() {
+function resetNuevo() {
   ['n-cuenta','n-proyecto','n-avance'].forEach(id => document.getElementById(id).value = '')
   document.getElementById('n-seg').value   = ''
   document.getElementById('n-fecha').value = today()
-  document.getElementById('nuevo-error').classList.add('hidden')
-  document.getElementById('nuevo-success').classList.add('hidden')
-  document.getElementById('nuevo-form-card').classList.remove('hidden')
+  document.getElementById('nuevo-err').classList.add('hidden')
+  document.getElementById('nuevo-ok').classList.add('hidden')
+  document.getElementById('nuevo-card').classList.remove('hidden')
   document.getElementById('preview-wrap').style.display = 'none'
 }
 
-function updatePreviewBar() {
+function updatePreview() {
   const val = parseFloat(document.getElementById('n-avance').value)
   const wrap = document.getElementById('preview-wrap')
   if (isNaN(val)) { wrap.style.display = 'none'; return }
@@ -781,85 +981,97 @@ function updatePreviewBar() {
 async function saveNuevo() {
   const row = readForm('n')
   if (!row) return
+  row.user_id = CURRENT_USER.id
   const btn = document.getElementById('save-btn')
   btn.disabled = true; btn.textContent = '⏳ Guardando…'
-
   const { error } = await sb.from('avance_obra').insert([row])
   btn.disabled = false; btn.innerHTML = '💾 Guardar registro'
-
   if (error) {
-    const el = document.getElementById('nuevo-error')
+    const el = document.getElementById('nuevo-err')
     el.textContent = error.message; el.classList.remove('hidden')
     return
   }
-  document.getElementById('nuevo-form-card').classList.add('hidden')
-  document.getElementById('nuevo-success').classList.remove('hidden')
+  document.getElementById('nuevo-card').classList.add('hidden')
+  document.getElementById('nuevo-ok').classList.remove('hidden')
   await loadData()
   setTimeout(() => switchView('registros', document.querySelector('[data-view="registros"]')), 1800)
 }
 
 // ── EDIT ─────────────────────────────────────────────────
-function openEditModal(id) {
-  const r = allData.find(x => x.id === id)
+function openEdit(id, scope) {
+  const src = scope === 'all' ? allData : myData
+  const r   = src.find(x => x.id === id)
   if (!r) return
-  document.getElementById('e-id').value      = r.id
-  document.getElementById('e-cuenta').value  = r.cuenta_contrato
-  document.getElementById('e-seg').value     = r.segmento
-  document.getElementById('e-proyecto').value= r.proyecto
-  document.getElementById('e-fecha').value   = r.fecha
-  document.getElementById('e-avance').value  = r.avance
-  document.getElementById('edit-error').classList.add('hidden')
+  document.getElementById('e-id').value       = r.id
+  document.getElementById('e-owner').value    = r.user_id
+  document.getElementById('e-cuenta').value   = r.cuenta_contrato
+  document.getElementById('e-seg').value      = r.segmento
+  document.getElementById('e-proyecto').value = r.proyecto
+  document.getElementById('e-fecha').value    = r.fecha
+  document.getElementById('e-avance').value   = r.avance
+  document.getElementById('edit-err').classList.add('hidden')
   document.getElementById('edit-modal').classList.remove('hidden')
-}
-
-function closeEditModal() {
-  document.getElementById('edit-modal').classList.add('hidden')
 }
 
 async function saveEdit() {
   const row = readForm('e')
   if (!row) return
   const id  = document.getElementById('e-id').value
-  const btn = document.getElementById('edit-save-btn')
+  const btn = document.getElementById('edit-btn')
   btn.disabled = true; btn.textContent = '⏳ Guardando…'
-
   const { error } = await sb.from('avance_obra').update(row).eq('id', id)
   btn.disabled = false; btn.innerHTML = '💾 Actualizar'
-
   if (error) {
-    const el = document.getElementById('edit-error')
+    const el = document.getElementById('edit-err')
     el.textContent = error.message; el.classList.remove('hidden')
     return
   }
-  closeEditModal()
-  toast('Registro actualizado')
+  closeModal('edit-modal')
+  toast('Registro actualizado ✓')
   await loadData()
 }
 
 // ── DELETE ────────────────────────────────────────────────
-function openDelModal(id) {
-  delTarget = id
-  document.getElementById('del-modal').classList.remove('hidden')
-}
-function closeDelModal() {
-  delTarget = null
-  document.getElementById('del-modal').classList.add('hidden')
-}
+function openDel(id) { delTarget = id; document.getElementById('del-modal').classList.remove('hidden') }
+
 async function confirmDelete() {
   if (!delTarget) return
-  const btn = document.getElementById('del-confirm-btn')
+  const btn = document.getElementById('del-btn')
   btn.disabled = true; btn.textContent = '⏳ Eliminando…'
   const { error } = await sb.from('avance_obra').delete().eq('id', delTarget)
   btn.disabled = false; btn.innerHTML = '✓ Sí, eliminar'
-  if (error) { toast(error.message, 'err'); closeDelModal(); return }
-  closeDelModal()
+  closeModal('del-modal')
+  if (error) { toast(error.message, 'err'); return }
   toast('Registro eliminado')
+  delTarget = null
   await loadData()
 }
 
-// Close modals clicking outside
-document.getElementById('edit-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeEditModal() })
-document.getElementById('del-modal').addEventListener('click',  e => { if (e.target === e.currentTarget) closeDelModal()  })
+// ── ROLE MODAL ────────────────────────────────────────────
+function openRoleModal(userId, name, currentRole) {
+  document.getElementById('role-target-id').value  = userId
+  document.getElementById('role-target-name').textContent = name
+  document.querySelectorAll('input[name="role-pick"]').forEach(r => { r.checked = r.value === currentRole })
+  document.getElementById('role-modal').classList.remove('hidden')
+}
+
+async function saveRole() {
+  const id   = document.getElementById('role-target-id').value
+  const role = document.querySelector('input[name="role-pick"]:checked')?.value
+  if (!role) { toast('Selecciona un rol', 'err'); return }
+  const { error } = await sb.from('profiles').update({ role }).eq('id', id)
+  if (error) { toast(error.message, 'err'); return }
+  closeModal('role-modal')
+  toast('Rol actualizado ✓')
+  await loadData()
+  renderUsersTable()
+}
+
+// ── MODALS ────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.add('hidden') }
+['edit-modal','del-modal','role-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(id) })
+})
 
 // ── FORM READER ───────────────────────────────────────────
 function readForm(prefix) {
@@ -867,76 +1079,80 @@ function readForm(prefix) {
   const seg      = document.getElementById(prefix + '-seg').value
   const proyecto = document.getElementById(prefix + '-proyecto').value.trim()
   const fecha    = document.getElementById(prefix + '-fecha').value
-  const avanceRaw= document.getElementById(prefix + '-avance').value
-  const avance   = parseFloat(avanceRaw)
-
-  const errEl = document.getElementById(prefix === 'n' ? 'nuevo-error' : 'edit-error')
-  const errors = []
-  if (!cuenta)   errors.push('Cuenta contrato es requerido')
-  if (!seg)      errors.push('Selecciona un segmento')
-  if (!proyecto) errors.push('Proyecto es requerido')
-  if (!fecha)    errors.push('Fecha es requerida')
-  if (isNaN(avance))           errors.push('Avance debe ser un número')
-  else if (avance < 0 || avance > 100) errors.push('Avance debe estar entre 0 y 100')
-
+  const avance   = parseFloat(document.getElementById(prefix + '-avance').value)
+  const errId    = prefix === 'n' ? 'nuevo-err' : 'edit-err'
+  const errors   = []
+  if (!cuenta)              errors.push('Cuenta contrato requerido')
+  if (!seg)                 errors.push('Selecciona un segmento')
+  if (!proyecto)            errors.push('Proyecto requerido')
+  if (!fecha)               errors.push('Fecha requerida')
+  if (isNaN(avance))        errors.push('Avance debe ser un número')
+  else if (avance < 0 || avance > 100) errors.push('Avance entre 0 y 100')
   if (errors.length) {
-    errEl.textContent = errors.join(' · ')
-    errEl.classList.remove('hidden')
+    const el = document.getElementById(errId)
+    el.textContent = errors.join(' · '); el.classList.remove('hidden')
     return null
   }
-  errEl.classList.add('hidden')
+  document.getElementById(errId).classList.add('hidden')
   return { cuenta_contrato: cuenta, segmento: seg, proyecto, fecha, avance }
 }
 
 // ── EXPORTS ───────────────────────────────────────────────
-function exportExcel() {
-  if (!filtered.length) { toast('No hay datos para exportar', 'err'); return }
-  const rows = filtered.map(r => ({
-    'Cuenta Contrato': r.cuenta_contrato,
-    'Segmento':        r.segmento,
-    'Proyecto':        r.proyecto,
-    'Fecha':           fmtDate(r.fecha),
-    'Avance (%)':      Number(r.avance).toFixed(2)
-  }))
-  const ws = XLSX.utils.json_to_sheet(rows)
-  ws['!cols'] = [{ wch:20 },{ wch:16 },{ wch:28 },{ wch:14 },{ wch:12 }]
+function exportExcel(scope) {
+  const rows = scope === 'all' ? allFiltered : myFiltered
+  if (!rows.length) { toast('No hay datos para exportar', 'err'); return }
+  const isAdmin = scope === 'all'
+  const out = rows.map(r => {
+    const o = {
+      'Cuenta Contrato': r.cuenta_contrato,
+      'Segmento':        r.segmento,
+      'Proyecto':        r.proyecto,
+      'Fecha':           fmtDate(r.fecha),
+      'Avance (%)':      Number(r.avance).toFixed(2)
+    }
+    if (isAdmin && r.profiles) o['Usuario'] = r.profiles.full_name || r.profiles.email
+    return o
+  })
+  const ws = XLSX.utils.json_to_sheet(out)
+  ws['!cols'] = [{ wch:20 },{ wch:15 },{ wch:28 },{ wch:14 },{ wch:12 },{ wch:22 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Avance Obra')
   XLSX.writeFile(wb, `calidda_avance_${stampDate()}.xlsx`)
   toast('Excel descargado')
 }
 
-function exportPDF() {
-  if (!filtered.length) { toast('No hay datos para exportar', 'err'); return }
+function exportPDF(scope) {
+  const rows = scope === 'all' ? allFiltered : myFiltered
+  if (!rows.length) { toast('No hay datos para exportar', 'err'); return }
+  const isAdmin = scope === 'all'
   const { jsPDF } = window.jspdf
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-
-  doc.setFillColor(0, 63, 125)
-  doc.rect(0, 0, 297, 22, 'F')
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' })
+  doc.setFillColor(0,63,125)
+  doc.rect(0,0,297,22,'F')
   doc.setTextColor(255,255,255)
   doc.setFontSize(13); doc.setFont('helvetica','bold')
-  doc.text('CÁLIDDA — Seguimiento de Avance de Obra', 14, 14)
+  doc.text('CÁLIDDA — Seguimiento de Avance de Obra' + (isAdmin ? ' (Vista Admin)' : ''), 14, 14)
   doc.setFontSize(8); doc.setFont('helvetica','normal')
-  doc.text('Generado: ' + new Date().toLocaleDateString('es-PE', { day:'2-digit',month:'long',year:'numeric' }), 283, 14, { align:'right' })
-
-  doc.autoTable({
-    startY: 28,
-    head:   [['Cuenta Contrato','Segmento','Proyecto','Fecha','Avance (%)']],
-    body:    filtered.map(r => [r.cuenta_contrato, r.segmento, r.proyecto, fmtDate(r.fecha), Number(r.avance).toFixed(2)+'%']),
-    styles: { fontSize:9, cellPadding:3 },
-    headStyles: { fillColor:[0,63,125], textColor:255, fontStyle:'bold' },
-    alternateRowStyles: { fillColor:[232,240,249] },
-    columnStyles: { 4:{ halign:'center' } },
-    margin: { left:14, right:14 }
+  doc.text(new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'}), 283, 14, { align:'right' })
+  const head = isAdmin
+    ? [['Usuario','Cuenta Contrato','Segmento','Proyecto','Fecha','Avance (%)']]
+    : [['Cuenta Contrato','Segmento','Proyecto','Fecha','Avance (%)']]
+  const body = rows.map(r => {
+    const base = [r.cuenta_contrato, r.segmento, r.proyecto, fmtDate(r.fecha), Number(r.avance).toFixed(2)+'%']
+    return isAdmin ? [r.profiles?.full_name || r.profiles?.email || '—', ...base] : base
   })
-
+  doc.autoTable({ startY:28, head, body,
+    styles:{ fontSize:9, cellPadding:3 },
+    headStyles:{ fillColor:[0,63,125], textColor:255, fontStyle:'bold' },
+    alternateRowStyles:{ fillColor:[232,240,249] },
+    margin:{ left:14, right:14 }
+  })
   const pages = doc.internal.getNumberOfPages()
   for (let i = 1; i <= pages; i++) {
-    doc.setPage(i)
-    doc.setFontSize(8); doc.setTextColor(160)
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(160)
     doc.text(`Pág. ${i} / ${pages}`, 283, 205, { align:'right' })
   }
-  doc.save(`calidda_avance_${stampDate()}.pdf`)
+  doc.save(`calidda_avance_${scope}_${stampDate()}.pdf`)
   toast('PDF descargado')
 }
 
@@ -946,33 +1162,31 @@ function toast(msg, type = 'ok') {
   el.textContent = (type === 'ok' ? '✓ ' : '✕ ') + msg
   el.className   = 'show ' + type
   clearTimeout(el._t)
-  el._t = setTimeout(() => { el.className = '' }, 3200)
+  el._t = setTimeout(() => { el.className = '' }, 3000)
 }
-
-function esc(str) {
-  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-}
-
-function today() {
-  return new Date().toISOString().slice(0,10)
-}
-
-function stampDate() {
-  return new Date().toISOString().slice(0,10).replace(/-/g,'')
-}
-
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function v(id)  { return document.getElementById(id)?.value?.trim() || '' }
+function today(){ return new Date().toISOString().slice(0,10) }
+function stampDate(){ return new Date().toISOString().slice(0,10).replace(/-/g,'') }
 function fmtDate(d) {
   if (!d) return '—'
-  const [y, m, day] = d.split('-')
-  const months = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-  return `${parseInt(day)} ${months[parseInt(m)]} ${y}`
+  const [y,m,day] = d.split('-')
+  const M = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  return `${parseInt(day)} ${M[parseInt(m)]} ${y}`
 }
-
-function fmtDateShort(d) {
+function fmtShort(d) {
   if (!d) return ''
-  const [, m, day] = d.split('-')
-  const months = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-  return `${parseInt(day)} ${months[parseInt(m)]}`
+  const [,m,day] = d.split('-')
+  const M = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  return `${parseInt(day)} ${M[parseInt(m)]}`
+}
+function emptyRow(cols, icon, text) {
+  return `<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-text">${text}</div></div></td></tr>`
+}
+function strColor(str) {
+  let h = 0
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
+  return `hsl(${h % 360},55%,45%)`
 }
 </script>
 </body>
